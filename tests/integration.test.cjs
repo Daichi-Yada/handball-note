@@ -66,3 +66,25 @@ test('keyboard shortcut works after team button selection and ignores text entry
 test('legacy time-only edits remain approximate until explicitly changed',()=>{
  const a=app();try{a.w.eval("current().actions=[C.normalizeAction({team:'Own',no:14,time:'05~10',action:'DS',result:'Goal'})];refresh()");a.click('[data-edit]');a.record('Out');assert.equal(a.json('current().actions')[0].seconds,null);a.click('[data-edit]');a.set('clock','07:30');a.w.document.querySelector('#clock').dispatchEvent(new a.w.Event('input'));a.record('Goal');assert.equal(a.json('current().actions')[0].seconds,450);}finally{a.close();}
 });
+test('direct choice buttons record details, keep selections when requested, and edit correctly',()=>{
+ const a=app();try{
+ const choose=(field,value)=>a.click(`[data-choice-for="${field}"][data-choice-value="${value}"]`);
+ assert.equal(a.w.document.querySelectorAll('#entryPanel select, #entryPanel details').length,0);
+ choose('half','2');a.set('clock','01:20');a.w.document.querySelector('#clock').dispatchEvent(new a.w.Event('change'));choose('half','2');assert.equal(a.w.document.querySelector('#clock').value,'01:20');
+ choose('shotType','WS');choose('phase','FB+Q');choose('zone','L');a.click('#keepDetails');a.record('Goal');
+ const first=a.json('current().actions')[0];assert.equal(first.half,2);assert.equal(first.action,'WS');assert.equal(first.phase,'FB+Q');assert.equal(first.zone,'L');
+ assert.equal(a.w.document.querySelector('[data-choice-for="shotType"][data-choice-value="WS"]').getAttribute('aria-pressed'),'true');
+ a.click('#keepDetails');a.record('Out');assert.equal(a.w.document.querySelector('[data-choice-for="shotType"][data-choice-value="UN"]').getAttribute('aria-pressed'),'true');
+ a.click('[data-edit]');assert.equal(a.w.document.querySelector('[data-choice-for="zone"][data-choice-value="L"]').getAttribute('aria-pressed'),'true');choose('zone','R');a.record('Save');assert.equal(a.json('current().actions')[1].zone,'R');
+ choose('logFilter','goals');assert.equal(a.w.document.querySelectorAll('#runningLog tbody tr').length,1);assert.deepEqual(a.errors,[]);
+ }finally{a.close();}
+});
+test('keeper roster selection persists between plays and assigns saves to the defending team',()=>{
+ const a=app();try{
+ a.click('[data-choice-for="ownGK"][data-choice-value="16"]');a.click('[data-team="Opp"]');a.set('playerNo','8');a.record('Save');
+ assert.equal(a.json('current().actions')[0].own_gk,16);assert.equal(a.json('matchData.personal.own_gk')[0].total.goals,1);assert.equal(a.json('matchData.personal.own_gk')[0].name,'田邉倖');
+ assert.equal(a.w.document.querySelector('[data-choice-for="ownGK"][data-choice-value="16"]').getAttribute('aria-pressed'),'true');
+ a.record('Goal');assert.equal(a.json('current().actions')[1].own_gk,16);assert.equal(a.json('matchData.personal.own_gk')[0].total.rate,0.5);
+ a.click('[data-choice-for="ownGK"][data-choice-value=""]');a.record('Save');assert.equal(a.json('current().actions')[2].own_gk,null);assert.equal(a.json('matchData.personal.own_gk')[0].total.shots,2);assert.deepEqual(a.errors,[]);
+ }finally{a.close();}
+});

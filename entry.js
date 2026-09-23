@@ -42,6 +42,25 @@ function renderPlayers() {
   for(const a of m.actions)if(a.team===selectedTeam && a.no!=null && !roster.has(a.no))roster.set(a.no,{no:a.no,name:''});
   $('playerButtons').innerHTML=[...roster.values()].sort((a,b)=>a.no-b.no).map(p=>`<button data-player="${p.no}" class="${$('playerNo').value===String(p.no)?'selected':''}" aria-pressed="${$('playerNo').value===String(p.no)}" title="${C.esc(p.name || '背番号 '+p.no)}">${p.no}${p.name?`<small>${C.esc(p.name)}</small>`:''}</button>`).join('');
   if(!roster.size)$('playerButtons').innerHTML='<span class="field-hint">一度入力した番号はここに並びます。選手設定でまとめて登録もできます。</span>';
+  syncChoiceButtons();
+}
+// One visible button per option; hidden inputs keep the existing record format.
+function syncChoiceButtons() {
+  document.querySelectorAll('[data-choice-for]').forEach(button=>{
+    const selected=$(button.dataset.choiceFor).value===button.dataset.choiceValue;
+    button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+  });
+}
+function renderKeeperButtons() {
+  for(const [field,team,name] of [['ownGK','Own',current().ownName],['oppGK','Opp',current().oppName]]) {
+    $(field+'Label').textContent=`${name}：守っているGK`;
+    const players=new Map(current().rosters[team].map(p=>[p.no,p]));
+    const key=team==='Own'?'own_gk':'opp_gk';
+    for(const a of current().actions)if(a[key]!=null&&!players.has(a[key]))players.set(a[key],{no:a[key],name:''});
+    const button=(value,label)=>`<button type="button" data-choice-for="${field}" data-choice-value="${value}" aria-pressed="false">${label}</button>`;
+    $(field+'Buttons').innerHTML=button('','未指定')+[...players.values()].sort((a,b)=>a.no-b.no).map(p=>button(p.no,`<strong>${p.no}</strong>${p.name?`<small>${C.esc(p.name)}</small>`:''}`)).join('');
+  }
+  syncChoiceButtons();
 }
 function renderPicker() {
   $('matchPicker').innerHTML=library.map(m=>`<option value="${C.esc(m.id)}">${C.esc(m.date)} ${C.esc(m.ownName)} − ${C.esc(m.oppName)}${m.title?' / '+C.esc(m.title):''}</option>`).join('');$('matchPicker').value=currentId;
@@ -64,7 +83,7 @@ function refresh() {
   $('liveOwnScore').textContent=matchData.score.own;$('liveOppScore').textContent=matchData.score.opp;
   for(const key of ['own','opp']){const s=matchData.stats[key];$('live'+(key==='own'?'Own':'Opp')+'Half').textContent=`前半 ${s.first.goals} / 後半 ${s.second.goals}`;}
   document.querySelector('[data-team="Own"]').textContent=m.ownName;document.querySelector('[data-team="Opp"]').textContent=m.oppName;
-  renderPicker();renderPlayers();renderLog();if(view==='analysis')renderDashboard();
+  renderPicker();renderPlayers();renderKeeperButtons();renderLog();if(view==='analysis')renderDashboard();
 }
 function showView(next) {
   view=next;$('entryPanel').hidden=next!=='entry';$('settingsPanel').hidden=next!=='settings';
@@ -78,7 +97,7 @@ function fillSettings() {
   const m=current();$('settingOwn').value=m.ownName;$('settingOpp').value=m.oppName;$('settingDate').value=m.date;$('settingTitle').value=m.title;
   for(const team of ['Own','Opp'])$('roster'+team).value=m.rosters[team].map(p=>`${p.no}${p.name?' '+p.name:''}`).join('\n');
 }
-function displayClock() {$('clock').value=C.clockText(elapsed());$('livePeriod').textContent=$('half').value==='1'?'前半':'後半';$('clockToggle').textContent=clockStarted==null?'▶ 計時':'Ⅱ 停止';$('clockToggle').classList.toggle('running',clockStarted!=null);}
+function displayClock() {$('clock').value=C.clockText(elapsed());$('livePeriod').textContent=$('half').value==='1'?'前半':'後半';$('clockToggle').textContent=clockStarted==null?'▶ 計時':'Ⅱ 停止';$('clockToggle').classList.toggle('running',clockStarted!=null);syncChoiceButtons();}
 function stopClock(){clockSeconds=elapsed();clockStarted=null;displayClock();}
 function readClock(){clockSeconds=C.timeToSeconds($('clock').value);clockBase=clockSeconds;if(clockStarted!=null)clockStarted=Date.now();}
 function loadCurrent() {
@@ -107,7 +126,7 @@ function edit(id){
   if(!editContext)editContext={seconds:elapsed(),half:$('half').value,team:selectedTeam,fields:Object.fromEntries(['playerNo','shotType','phase','zone','ownGK','oppGK'].map(id=>[id,$(id).value]))};
   stopClock();editingId=id;$('half').value=String(a.half);clockSeconds=a.seconds??(Number(a.time.slice(0,2))%30)*60;displayClock();$('clock').dataset.unchanged='true';
   setTeam(a.team);$('playerNo').value=a.no??'';$('shotType').value=C.SHOTS.includes(a.action)?a.action:'UN';$('phase').value=a.phase||'';$('zone').value=a.zone||'';$('ownGK').value=a.own_gk??'';$('oppGK').value=a.opp_gk??'';
-  $('editBadge').hidden=false;$('cancelEdit').hidden=false;$('resultLabel').textContent=`修正後の結果を押して保存（現在：${labels[a.result]}）`;$('detailFields').open=true;
+  $('editBadge').hidden=false;$('cancelEdit').hidden=false;$('resultLabel').textContent=`修正後の結果を押して保存（現在：${labels[a.result]}）`;
   renderPlayers();renderLog();$('entryPanel').scrollIntoView({behavior:'smooth',block:'start'});notify('内容を直し、結果ボタンで保存してください。');
 }
 function download(name, content, type) {const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
@@ -159,6 +178,12 @@ function init(){
   document.querySelectorAll('[data-result]').forEach(b=>b.onclick=()=>record(b.dataset.result));
   $('playerButtons').onclick=e=>{const b=e.target.closest('[data-player]');if(b){$('playerNo').value=b.dataset.player;renderPlayers();}};
   $('playerNo').oninput=renderPlayers;
+  document.addEventListener('click',e=>{
+    const button=e.target.closest('[data-choice-for]');if(!button)return;
+    const input=$(button.dataset.choiceFor);if(input.value===button.dataset.choiceValue)return;
+    input.value=button.dataset.choiceValue;input.dispatchEvent(new Event('change',{bubbles:true}));syncChoiceButtons();
+  });
+  for(const id of ['ownGK','oppGK'])$(id).oninput=syncChoiceButtons;
   $('runningLog').onclick=e=>{const editBtn=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]');if(editBtn)edit(editBtn.dataset.edit);if(del){snapshot();current().actions=current().actions.filter(a=>a.id!==del.dataset.delete);if(editingId===del.dataset.delete)resetEditor();save();refresh();notify('削除しました。「ひとつ戻す」で取り消せます。');}};
   $('cancelEdit').onclick=()=>{resetEditor();renderLog();};
   $('undoBtn').onclick=()=>{if(!history.length)return;const restored=JSON.parse(history.pop());library[library.findIndex(m=>m.id===currentId)]=restored;resetEditor();save();refresh();if(view==='settings')fillSettings();notify('ひとつ前の状態に戻しました。');};

@@ -41,7 +41,7 @@ function renderPlayers() {
   const m=current(), roster=new Map(m.rosters[selectedTeam].map(p=>[p.no,p]));
   for(const a of m.actions)if(a.team===selectedTeam && a.no!=null && !roster.has(a.no))roster.set(a.no,{no:a.no,name:''});
   const order=m.playerOrder?.[selectedTeam]||[];const players=[...order.map(no=>roster.get(no)).filter(Boolean),...[...roster.values()].filter(p=>!order.includes(p.no)).sort((a,b)=>a.no-b.no)];
-  $('playerButtons').innerHTML=players.map(p=>`<button type="button" draggable="true" data-player="${p.no}" class="${$('playerNo').value===String(p.no)?'selected':''}" aria-pressed="${$('playerNo').value===String(p.no)}" title="${C.esc(p.name || '背番号 '+p.no)}">${p.no}${p.name?`<small>${C.esc(p.name)}</small>`:''}</button>`).join('');
+  $('playerButtons').innerHTML=players.map(p=>`<button type="button" data-player="${p.no}" class="${$('playerNo').value===String(p.no)?'selected':''}" aria-pressed="${$('playerNo').value===String(p.no)}" title="${C.esc(p.name || '背番号 '+p.no)}">${p.no}${p.name?`<small>${C.esc(p.name)}</small>`:''}</button>`).join('');
   if(!roster.size)$('playerButtons').innerHTML='<span class="field-hint">一度入力した番号はここに並びます。選手設定でまとめて登録もできます。</span>';
   syncChoiceButtons();
 }
@@ -196,14 +196,33 @@ function init(){
   document.querySelectorAll('[data-result]').forEach(b=>b.onclick=()=>record(b.dataset.result));
   $('playerButtons').onclick=e=>{const b=e.target.closest('[data-player]');if(b&&Date.now()>suppressPlayerClickUntil){$('playerNo').value=b.dataset.player;renderPlayers();}};
 
-  document.addEventListener('dragstart',e=>{const p=e.target.closest('[data-player]');if(!p)return;dragPlayer=Number(p.dataset.player);e.dataTransfer?.setData('text/plain',String(dragPlayer));if(e.dataTransfer)e.dataTransfer.effectAllowed='move';p.classList.add('dragging');});
-  document.addEventListener('dragend',e=>{e.target.closest('[data-player]')?.classList.remove('dragging');});
-  document.addEventListener('dragover',e=>{if(dragPlayer!=null&&e.target.closest('#playerButtons'))e.preventDefault();});
-  document.addEventListener('drop',e=>{if(dragPlayer==null)return;e.preventDefault();completePlayerDrop(e.target);document.querySelectorAll('.dragging').forEach(n=>n.classList.remove('dragging'));});
-  document.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch')return;const p=e.target.closest('[data-player]');if(!p)return;touchStartPoint=[e.clientX,e.clientY];dragPlayer=Number(p.dataset.player);touchLongPress=setTimeout(()=>{touchIsDragging=true;p.classList.add('dragging');},420);});
-  document.addEventListener('pointermove',e=>{if(!touchStartPoint)return;if(!touchIsDragging&&Math.hypot(e.clientX-touchStartPoint[0],e.clientY-touchStartPoint[1])>12){clearTimeout(touchLongPress);touchLongPress=null;dragPlayer=null;touchStartPoint=null;return;}if(touchIsDragging){e.preventDefault();document.querySelectorAll('.drag-over').forEach(n=>n.classList.remove('drag-over'));document.elementFromPoint(e.clientX,e.clientY)?.closest('#playerButtons,[data-player]')?.classList.add('drag-over');}} ,{passive:false});
-  document.addEventListener('pointerup',e=>{if(!touchStartPoint)return;clearTimeout(touchLongPress);if(touchIsDragging){suppressPlayerClickUntil=Date.now()+500;const target=document.elementFromPoint(e.clientX,e.clientY);completePlayerDrop(target);document.querySelectorAll('.dragging,.drag-over').forEach(n=>n.classList.remove('dragging','drag-over'));}else dragPlayer=null;touchStartPoint=null;touchIsDragging=false;touchLongPress=null;});
-  document.addEventListener('pointercancel',()=>{clearTimeout(touchLongPress);dragPlayer=null;touchStartPoint=null;touchIsDragging=false;touchLongPress=null;document.querySelectorAll('.dragging,.drag-over').forEach(n=>n.classList.remove('dragging','drag-over'));});
+  let activePointerId=null,activePointerType=null,activeDragButton=null;
+  const clearDragVisuals=()=>document.querySelectorAll('.dragging,.drag-over').forEach(n=>n.classList.remove('dragging','drag-over'));
+  const cancelPointerDrag=()=>{clearTimeout(touchLongPress);dragPlayer=null;touchStartPoint=null;touchIsDragging=false;touchLongPress=null;activePointerId=null;activePointerType=null;activeDragButton=null;clearDragVisuals();};
+  document.addEventListener('pointerdown',e=>{
+    const p=e.target.closest('[data-player]');if(!p||e.button!==0||activePointerId!==null)return;
+    activePointerId=e.pointerId;activePointerType=e.pointerType;activeDragButton=p;dragPlayer=Number(p.dataset.player);touchStartPoint=[e.clientX,e.clientY];
+    try{p.setPointerCapture(e.pointerId);}catch{}
+    if(e.pointerType==='touch')touchLongPress=setTimeout(()=>{touchIsDragging=true;activeDragButton?.classList.add('dragging');},450);
+  });
+  document.addEventListener('pointermove',e=>{
+    if(activePointerId===null||e.pointerId!==activePointerId||!touchStartPoint)return;
+    const distance=Math.hypot(e.clientX-touchStartPoint[0],e.clientY-touchStartPoint[1]);
+    if(activePointerType==='mouse'){
+      if(!(e.buttons&1)){cancelPointerDrag();return;}
+      if(!touchIsDragging&&distance>5){touchIsDragging=true;activeDragButton?.classList.add('dragging');}
+    }else if(!touchIsDragging&&distance>12){cancelPointerDrag();return;}
+    if(!touchIsDragging)return;
+    e.preventDefault();document.querySelectorAll('.drag-over').forEach(n=>n.classList.remove('drag-over'));
+    document.elementFromPoint(e.clientX,e.clientY)?.closest('#playerButtons [data-player]')?.classList.add('drag-over');
+  },{passive:false});
+  document.addEventListener('pointerup',e=>{
+    if(activePointerId===null||e.pointerId!==activePointerId)return;
+    clearTimeout(touchLongPress);
+    if(touchIsDragging){suppressPlayerClickUntil=Date.now()+500;completePlayerDrop(document.elementFromPoint(e.clientX,e.clientY));}
+    cancelPointerDrag();
+  });
+  document.addEventListener('pointercancel',e=>{if(activePointerId===null||e.pointerId===activePointerId)cancelPointerDrag();});
   document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-player]'))e.preventDefault();});
   $('playerNo').oninput=renderPlayers;
   document.addEventListener('click',e=>{

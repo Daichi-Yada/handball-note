@@ -4,7 +4,7 @@ const C = ScoreCore;
 const $ = id => document.getElementById(id);
 const STORAGE_KEY = 'handball-note-v1';
 const labels = {Goal:'ゴール',Save:'GKセーブ',Out:'枠外',Block:'ブロック',TM:'ミス',VL:'反則',Yellow:'警告',Suspension:'2分退場',Red:'失格',Timeout:'タイムアウト'};
-let library = [], currentId, selectedTeam = 'Own', editingId = null, history = [], view = 'entry';
+let library = [], folders = ['未分類'], activeFolder = null, currentId, selectedTeam = 'Own', editingId = null, history = [], view = 'home';
 let editContext = null;
 let clockSeconds = 0, clockStarted = null, clockBase = 0, toastTimeout, lastResultAt = 0, storageBlocked = false;
 const current = () => library.find(m => m.id === currentId);
@@ -17,7 +17,7 @@ function save() {
   if(storageBlocked) return;
   try {
     current().clock={half:Number($('half').value),seconds:elapsed()};
-    localStorage.setItem(STORAGE_KEY,JSON.stringify({version:1,currentId,matches:library}));
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({version:1,currentId,matches:library,folders}));
     $('saveStatus').textContent='この端末に保存済み'; $('saveStatus').classList.remove('error');
   } catch(e) { $('saveStatus').textContent='自動保存できません・JSON保存を';$('saveStatus').classList.add('error'); }
 }
@@ -65,6 +65,11 @@ function renderKeeperButtons() {
 function renderPicker() {
   $('matchPicker').innerHTML=library.map(m=>`<option value="${C.esc(m.id)}">${C.esc(m.date)} ${C.esc(m.ownName)} − ${C.esc(m.oppName)}${m.title?' / '+C.esc(m.title):''}</option>`).join('');$('matchPicker').value=currentId;
 }
+function renderHome(){
+  const counts=new Map(folders.map(f=>[f,0]));for(const m of library){const f=m.folder||'未分類';if(!counts.has(f))counts.set(f,0);counts.set(f,counts.get(f)+1);}
+  $('folderList').innerHTML=[...counts].map(([name,count])=>`<button class="folder-card ${activeFolder===name?'selected':''}" data-folder="${C.esc(name)}"><span class="folder-icon">📁</span><strong>${C.esc(name)}</strong><small>${count}試合</small></button>`).join('');
+  $('folderMatches').innerHTML=activeFolder?`<div class="folder-title"><h3>📂 ${C.esc(activeFolder)}</h3><button data-folder-clear>すべてのフォルダ</button></div>`+library.filter(m=>(m.folder||'未分類')===activeFolder).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(m=>`<button class="match-card" data-open-match="${C.esc(m.id)}"><strong>${C.esc(m.ownName)} <span>−</span> ${C.esc(m.oppName)}</strong><small>${C.esc(m.title||'試合')} ・ ${C.esc(m.date||'日付未設定')} ・ ${C.analysis(m).score.own}−${C.analysis(m).score.opp}</small></button>`).join(''):'<p class="home-hint">フォルダを選ぶと、試合データが表示されます。</p>';
+}
 function renderLog() {
   const rows=C.running(current().actions),filter=$('logFilter').value;
   $('recordCount').textContent=rows.length+'件';$('undoBtn').disabled=!history.length;
@@ -86,15 +91,17 @@ function refresh() {
   renderPicker();renderPlayers();renderKeeperButtons();renderLog();if(view==='analysis')renderDashboard();
 }
 function showView(next) {
-  view=next;$('entryPanel').hidden=next!=='entry';$('settingsPanel').hidden=next!=='settings';
+  view=next;$('homePanel').hidden=next!=='home';$('matchToolbar').hidden=next==='home';$('mainTabs').hidden=next==='home';$('entryPanel').hidden=next!=='entry';$('settingsPanel').hidden=next!=='settings';
   $('dashboard').classList.toggle('active',next==='analysis');$('analysisNotice').hidden=next!=='analysis';
   document.querySelectorAll('[data-view]').forEach(b=>{const active=b.dataset.view===next;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   if(next==='analysis'){renderDashboard();if(typeof Chart==='undefined')notify('グラフを読み込めませんでした。記録・集計は引き続き利用できます。',true);}
   if(next==='settings') fillSettings();
+  if(next==='home') renderHome();
 }
 function fillSettings() {
   fillRosterPresets();
   const m=current();$('settingOwn').value=m.ownName;$('settingOpp').value=m.oppName;$('settingDate').value=m.date;$('settingTitle').value=m.title;
+  $('matchFolder').innerHTML=folders.map(f=>`<option value="${C.esc(f)}">${C.esc(f)}</option>`).join('')+'<option value="__new__">＋ 新しいフォルダ</option>';$('matchFolder').value=folders.includes(m.folder)?m.folder:(activeFolder||folders[0]);$('newFolderSetting').hidden=$('matchFolder').value!=='__new__';
   for(const team of ['Own','Opp'])$('roster'+team).value=m.rosters[team].map(p=>`${p.no}${p.name?' '+p.name:''}`).join('\n');
 }
 function displayClock() {$('clock').value=C.clockText(elapsed());$('livePeriod').textContent=$('half').value==='1'?'前半':'後半';$('clockToggle').textContent=clockStarted==null?'▶ 計時':'Ⅱ 停止';$('clockToggle').classList.toggle('running',clockStarted!=null);syncChoiceButtons();}
@@ -144,7 +151,7 @@ async function importFile(file){
     if(/\.json$/i.test(file.name))parsed=JSON.parse(await file.text());
     else if(/\.(xlsx|xlsm|xls)$/i.test(file.name)){if(typeof XLSX==='undefined')throw new Error('Excel読込を利用できません。接続を確認してください。');parsed=parseWorkbook(XLSX.read(await file.arrayBuffer(),{type:'array'}));}
     else throw new Error('JSON または Excel ファイルを選択してください。');
-    const m=C.normalize(parsed);m.id=C.id();stopClock();save();library.push(m);currentId=m.id;loadCurrent();showView('entry');
+    const m=C.normalize(parsed);m.id=C.id();m.folder=activeFolder||folders[0]||'未分類';stopClock();save();library.push(m);currentId=m.id;loadCurrent();showView('entry');
     const score=C.analysis(m).score, mismatch=parsed.score&&(score.own!==Number(parsed.score.own)||score.opp!==Number(parsed.score.opp));
     notify(mismatch?'読み込みました。元の得点と記録の合計が異なるため、記録から得点を再計算しました。':'新しい試合として読み込みました。元の試合も残っています。',!!mismatch);
   }catch(e){notify('読み込みできませんでした：'+e.message,true);}finally{$('fileInput').value='';}
@@ -168,10 +175,10 @@ function applyRoster(side){
 function init(){
   try{
     const raw=localStorage.getItem(STORAGE_KEY);
-    if(raw){const state=JSON.parse(raw);if(state.version!==1||!Array.isArray(state.matches)||!state.matches.length)throw new Error('形式不明');library=state.matches.map(m=>({...C.normalize(m),clock:m.clock}));currentId=state.currentId;}
+    if(raw){const state=JSON.parse(raw);if(state.version!==1||!Array.isArray(state.matches)||!state.matches.length)throw new Error('形式不明');library=state.matches.map(m=>({...C.normalize(m),clock:m.clock,folder:String(m.folder||'未分類').slice(0,50)}));currentId=state.currentId;if(Array.isArray(state.folders))folders=[...new Set(state.folders.map(f=>String(f).trim().slice(0,50)).filter(Boolean))];for(const m of library)if(!folders.includes(m.folder))folders.push(m.folder);}
   }catch(e){storageBlocked=true;$('saveStatus').textContent='保存データを読めません・JSON保存を';$('saveStatus').classList.add('error');notify('以前の保存データを読み込めませんでした。上書きを止めています。作業中の記録はJSON保存してください。',true);}
   if(!library.length)library=[C.blank()];if(!library.some(m=>m.id===currentId))currentId=library[0].id;
-  setupTabs();loadCurrent();
+  setupTabs();loadCurrent();showView('home');
   for(const side of ['Own','Opp'])$('load'+side+'Roster').onclick=()=>applyRoster(side);
   document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>showView(b.dataset.view));
   document.querySelectorAll('[data-team]').forEach(b=>b.onclick=()=>setTeam(b.dataset.team));
@@ -193,9 +200,15 @@ function init(){
   $('clock').oninput=()=>{$('clock').dataset.unchanged='false';};
   $('clock').onchange=()=>{try{readClock();displayClock();save();}catch(e){notify(e.message,true);}};
   $('half').onchange=()=>{stopClock();clockSeconds=0;$('clock').dataset.unchanged='false';displayClock();save();};
-  $('newMatch').onclick=()=>{stopClock();save();const m=C.blank();m.ownName=current().ownName;m.rosters.Own=current().rosters.Own.map(p=>({...p}));library.push(m);currentId=m.id;loadCurrent();showView('settings');$('settingOwn').focus();notify('新しい試合を作成しました。前の試合は試合一覧から開けます。');};
+  const createMatch=()=>{stopClock();save();const m=C.blank();m.ownName=current().ownName;m.rosters.Own=current().rosters.Own.map(p=>({...p}));m.folder=activeFolder||folders[0]||'未分類';library.push(m);currentId=m.id;loadCurrent();showView('settings');$('settingOwn').focus();notify('新しい試合を作成しました。保存先フォルダを選んでください。');};
+  $('newMatch').onclick=createMatch;$('homeNewMatch').onclick=createMatch;
   $('matchPicker').onchange=()=>{const next=$('matchPicker').value;stopClock();save();currentId=next;loadCurrent();};
-  $('settingsForm').onsubmit=e=>{e.preventDefault();try{const own=$('settingOwn').value.trim(),opp=$('settingOpp').value.trim();if(!own||!opp)throw new Error('チーム名を入力してください。');const rosters={Own:parseRoster($('rosterOwn').value),Opp:parseRoster($('rosterOpp').value)};snapshot();Object.assign(current(),{ownName:own,oppName:opp,date:$('settingDate').value,title:$('settingTitle').value.trim(),rosters});save();refresh();showView('entry');notify('設定を保存しました。');}catch(e){notify(e.message,true);}};
+  $('settingsForm').onsubmit=e=>{e.preventDefault();try{const own=$('settingOwn').value.trim(),opp=$('settingOpp').value.trim();if(!own||!opp)throw new Error('チーム名を入力してください。');let folder=$('matchFolder').value;if(folder==='__new__'){folder=$('newFolderSettingName').value.trim();if(!folder)throw new Error('新しいフォルダ名を入力してください。');if(!folders.includes(folder))folders.push(folder);}const rosters={Own:parseRoster($('rosterOwn').value),Opp:parseRoster($('rosterOpp').value)};snapshot();Object.assign(current(),{ownName:own,oppName:opp,date:$('settingDate').value,title:$('settingTitle').value.trim(),folder,rosters});activeFolder=folder;save();refresh();showView('entry');notify('設定を保存しました。');}catch(e){notify(e.message,true);}};
+  $('matchFolder').onchange=()=>{$('newFolderSetting').hidden=$('matchFolder').value!=='__new__';};
+  $('homeImport').onclick=()=>$('fileInput').click();$('homeNewFolder').onclick=()=>{$('newFolderForm').hidden=false;$('newFolderName').focus();};$('cancelNewFolder').onclick=()=>{$('newFolderForm').hidden=true;};
+  $('newFolderForm').onsubmit=e=>{e.preventDefault();const name=$('newFolderName').value.trim().slice(0,50);if(!name)return;if(!folders.includes(name))folders.push(name);activeFolder=name;$('newFolderName').value='';$('newFolderForm').hidden=true;save();renderHome();};
+  $('folderList').onclick=e=>{const b=e.target.closest('[data-folder]');if(b){activeFolder=b.dataset.folder;renderHome();}};
+  $('folderMatches').onclick=e=>{if(e.target.closest('[data-folder-clear]')){activeFolder=null;renderHome();return;}const b=e.target.closest('[data-open-match]');if(b){stopClock();save();currentId=b.dataset.openMatch;loadCurrent();showView('entry');}};
   $('exportBtn').onclick=exportJSON;$('csvBtn').onclick=csvExport;$('importBtn').onclick=()=>$('fileInput').click();$('fileInput').onchange=e=>importFile(e.target.files[0]);
   document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('drop',e=>{e.preventDefault();importFile(e.dataTransfer.files[0]);});
   $('demoBtn').onclick=()=>{

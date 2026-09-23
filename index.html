@@ -12,7 +12,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="entry.css?v=2">
+    <link rel="stylesheet" href="entry.css?v=3">
     <script src="vendor/xlsx.full.min.js"></script>
     <script src="vendor/chart.umd.min.js"></script>
 </head>
@@ -24,12 +24,19 @@
       <div class="save-status" id="saveStatus" role="status">この端末に自動保存</div>
     </header>
     <main class="workspace">
-      <div class="match-toolbar">
+      <section id="homePanel" class="home-panel">
+        <div class="home-heading"><div><h1>ハンドボール分析</h1><p>過去の試合を管理・新しい試合を開始</p></div><button id="homeNewMatch" class="home-primary">＋ 新しい試合を始める</button></div>
+        <div class="home-actions"><button id="homeImport">📥 試合データ読込（JSON / Excel）</button><button id="homeNewFolder">📁 フォルダを作成</button><a href="rosters.html">👥 チーム名簿</a></div>
+        <form id="newFolderForm" class="new-folder-form" hidden><label>フォルダ名<input id="newFolderName" maxlength="50" placeholder="例：春リーグ2026" required></label><button type="submit" class="primary">作成</button><button type="button" id="cancelNewFolder">取消</button></form>
+        <div class="home-library"><h2>📂 試合データ</h2><div id="folderList" class="folder-list"></div><div id="folderMatches" class="folder-matches"></div></div>
+      </section>
+      <div class="match-toolbar" id="matchToolbar">
         <label class="match-picker">試合 <select id="matchPicker" aria-label="保存した試合"></select></label>
         <div class="toolbar-actions"><button id="newMatch">＋ 新しい試合</button><button id="importBtn">ファイル読込</button><button id="exportBtn">JSON保存</button></div>
         <input type="file" id="fileInput" accept=".json,.xlsx,.xlsm,.xls" hidden>
       </div>
-      <nav class="main-tabs" aria-label="メイン画面">
+      <nav class="main-tabs" id="mainTabs" aria-label="メイン画面">
+        <button data-view="home">ホーム</button>
         <button class="active" data-view="entry" aria-current="page">ランニングスコア</button>
         <button data-view="analysis">試合分析</button>
         <button data-view="settings">試合・選手設定</button>
@@ -87,7 +94,7 @@
         <div class="card-heading"><h1>試合・選手設定</h1><button id="demoBtn">サンプルを試す</button></div>
         <form id="settingsForm">
           <div class="roster-callout"><p>大学別名簿から選手を呼び出す</p><div class="roster-load-grid"><label>自チームの名簿<select id="presetOwn"><option value="">大学を選択</option></select></label><button type="button" id="loadOwnRoster">自チームに反映</button><label>相手チームの名簿<select id="presetOpp"><option value="">大学を選択</option></select></label><button type="button" id="loadOppRoster">相手に反映</button></div><small>呼び出し後に「設定を保存」で確定します。<a href="rosters.html">名簿を編集・追加する ↗</a></small></div>
-          <div class="settings-grid"><label>自チーム名<input id="settingOwn" maxlength="60" required></label><label>相手チーム名<input id="settingOpp" maxlength="60" required></label><label>試合日<input id="settingDate" type="date"></label><label>大会・メモ<input id="settingTitle" maxlength="120" placeholder="練習試合など"></label></div>
+          <div class="settings-grid"><label>自チーム名<input id="settingOwn" maxlength="60" required></label><label>相手チーム名<input id="settingOpp" maxlength="60" required></label><label>試合日<input id="settingDate" type="date"></label><label>大会・メモ<input id="settingTitle" maxlength="120" placeholder="練習試合など"></label><label>保存先フォルダ<select id="matchFolder"></select></label><label id="newFolderSetting" hidden>新しいフォルダ名<input id="newFolderSettingName" maxlength="50" placeholder="フォルダ名"></label></div>
           <div class="roster-grid"><label>自チームの選手<textarea id="rosterOwn" rows="9" placeholder="2 山田
 7 佐藤
 14 鈴木"></textarea></label><label>相手チームの選手<textarea id="rosterOpp" rows="9" placeholder="1
@@ -240,7 +247,7 @@
     <script src="score-core.js"></script>
     <script src="roster-store.js"></script>
     <script src="app.js"></script>
-    <script src="entry.js?v=2"></script>
+    <script src="entry.js?v=3"></script>
 </body>
 
 </html>

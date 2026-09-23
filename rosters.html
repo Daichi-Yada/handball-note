@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>大学別名簿 | HANDBALL NOTE</title><meta name="description" content="大学別のハンドボール選手名簿を保存し、試合の入力に呼び出します。"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="entry.css"></head>
+<body>
+<header class="app-header"><a class="app-brand" href="./"><span class="brand-mark">H</span><span>HANDBALL <strong>NOTE</strong><small>大学別名簿</small></span></a><span id="rosterStatus" class="save-status" role="status">この端末に保存</span></header>
+<main class="workspace">
+<nav class="main-tabs" aria-label="メイン画面"><a href="./">← 試合記録に戻る</a><a href="rosters.html" class="active" aria-current="page">大学別名簿</a></nav>
+<div class="directory-heading"><div><h1>大学別の選手名簿</h1><p class="field-hint">名簿を一度保存すれば、試合・選手設定からいつでも呼び出せます。</p></div><div class="toolbar-actions"><button id="directoryExport">全名簿をJSON保存</button><button id="directoryImport">名簿JSON読込</button><input id="directoryFile" type="file" accept=".json" hidden></div></div>
+<div class="directory-layout">
+<section class="log-card"><div class="card-heading"><h2>登録大学 <span id="universityCount"></span></h2><button id="addUniversity">＋ 大学を追加</button></div><label>大学を検索<input id="universitySearch" type="search" placeholder="大学名"></label><div id="universityList" class="university-list"></div></section>
+<section class="entry-card"><div class="card-heading"><h2 id="directoryEditorTitle">名簿を編集</h2><span id="memberCount" class="field-hint"></span></div>
+<form id="directoryForm"><label>大学名<input id="universityName" required maxlength="60" placeholder="大学名"></label><label class="roster-members">選手（背番号 名前）<textarea id="universityMembers" rows="13" placeholder="2 山田\n7 佐藤\n14 鈴木"></textarea></label><p class="field-hint">1行に1人。Excelの背番号・名前の2列を貼り付けできます。番号だけでも登録できます（0〜99）。</p><div class="directory-buttons"><button type="submit" class="primary">名簿を保存</button><button type="button" id="cancelDirectoryEdit">変更を戻す</button><button type="button" id="deleteUniversity" class="danger-text">大学を削除</button></div></form>
+<div class="storage-note"><p>試合へ呼び出した名簿は、その試合用のコピーになります。ここで選手を変更・削除しても、過去の試合の名前は変わりません。</p><p>このブラウザに保存されます。別の端末でも使う場合は「全名簿をJSON保存」→「名簿JSON読込」で移してください。</p></div>
+</section></div>
+</main><div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="team-defaults.js"></script><script src="score-core.js"></script><script src="roster-store.js"></script><script src="roster-page.js"></script>
+</body></html>

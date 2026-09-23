@@ -1,0 +1,7 @@
+{
+  "name": "handball-note",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {"test": "node --test tests/*.test.cjs", "start": "python3 -m http.server 4173 --bind 127.0.0.1"},
+  "devDependencies": {"jsdom": "^26.1.0"}
+}

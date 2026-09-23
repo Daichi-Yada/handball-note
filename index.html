@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HANDBALL NOTE | ランニングスコア・試合分析</title>
+    <meta name="description" content="試合を見ながらハンドボールの得点・プレーをかんたん記録。ランニングスコア、選手別集計、試合分析。">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="entry.css">
+    <script src="vendor/xlsx.full.min.js"></script>
+    <script src="vendor/chart.umd.min.js"></script>
+</head>
+
+<body>
+
+    <header class="app-header">
+      <a class="app-brand" href="./"><span class="brand-mark">H</span><span>HANDBALL <strong>NOTE</strong><small>試合記録・分析</small></span></a>
+      <div class="save-status" id="saveStatus" role="status">この端末に自動保存</div>
+    </header>
+    <main class="workspace">
+      <div class="match-toolbar">
+        <label class="match-picker">試合 <select id="matchPicker" aria-label="保存した試合"></select></label>
+        <div class="toolbar-actions"><button id="newMatch">＋ 新しい試合</button><button id="importBtn">ファイル読込</button><button id="exportBtn">JSON保存</button></div>
+        <input type="file" id="fileInput" accept=".json,.xlsx,.xlsm,.xls" hidden>
+      </div>
+      <nav class="main-tabs" aria-label="メイン画面">
+        <button class="active" data-view="entry" aria-current="page">ランニングスコア</button>
+        <button data-view="analysis">試合分析</button>
+        <button data-view="settings">試合・選手設定</button>
+        <a href="rosters.html">大学別名簿 ↗</a>
+      </nav>
+      <section id="entryPanel" aria-label="ランニングスコア入力">
+        <div class="live-scoreboard">
+          <div class="live-team own"><span id="liveOwnName"></span><strong id="liveOwnScore">0</strong><small id="liveOwnHalf"></small></div>
+          <div class="live-center"><span class="eyebrow">RUNNING SCORE</span><span id="livePeriod">前半</span><span class="score-dash">:</span><small>30分 × 2</small></div>
+          <div class="live-team opp"><span id="liveOppName"></span><strong id="liveOppScore">0</strong><small id="liveOppHalf"></small></div>
+        </div>
+        <div class="record-layout">
+          <section class="entry-card">
+            <div class="card-heading"><h1>プレーを記録</h1><span id="editBadge" hidden>記録を編集中</span></div>
+            <div class="clock-row">
+              <label>前後半<select id="half"><option value="1">前半</option><option value="2">後半</option></select></label>
+              <label class="clock-field">ハーフ内の時刻<input id="clock" value="00:00" inputmode="numeric" maxlength="5" aria-describedby="clockHelp"></label>
+              <button id="clockToggle" title="計時の開始・停止">▶ 計時</button>
+            </div>
+            <p class="field-hint" id="clockHelp">時刻は直接入力できます。映像を見ながらの記録にも。</p>
+            <div class="team-switch" role="group" aria-label="記録するチーム"><button data-team="Own" class="selected own" aria-pressed="true">自チーム</button><button data-team="Opp" class="opp" aria-pressed="false">相手チーム</button></div>
+            <div class="player-input-row"><label>背番号<input id="playerNo" type="number" min="0" max="99" placeholder="未指定" inputmode="numeric"></label><span class="field-hint">番号ボタンで選択。未指定でも記録できます。</span></div>
+            <div id="playerButtons" class="player-buttons" aria-label="選手を選択"></div>
+            <details id="detailFields"><summary>詳細を追加 <span>シュート・場面・GK</span></summary>
+              <div class="detail-grid">
+                <label>シュート<select id="shotType"><option value="UN">未指定</option><option value="DS">ロング・ミドル（DS）</option><option value="LS">ライン際（LS）</option><option value="WS">サイド（WS）</option><option value="BT">カットイン（BT）</option><option value="EG">エンプティ（EG）</option><option value="PT">7mスロー（PT）</option></select></label>
+                <label>場面<select id="phase"><option value="">未指定</option><option value="SetOF">セット攻撃</option><option value="FB+Q">速攻・クイック</option></select></label>
+                <label>場所<select id="zone"><option value="">未指定</option><option value="L">左</option><option value="C">中央</option><option value="R">右</option></select></label>
+                <label>自チーム GK<input id="ownGK" type="number" min="0" max="99" inputmode="numeric" placeholder="未指定"></label>
+                <label>相手 GK<input id="oppGK" type="number" min="0" max="99" inputmode="numeric" placeholder="未指定"></label>
+              </div>
+              <label class="check-label"><input type="checkbox" id="keepDetails">シュート・場面・場所の選択を次の記録でも使う</label>
+            </details>
+            <p class="result-label" id="resultLabel">結果を押すと、1件記録されます</p>
+            <div class="result-buttons">
+              <button data-result="Goal" class="goal-button"><strong>ゴール</strong><kbd>G</kbd></button>
+              <button data-result="Save">GKセーブ <kbd>S</kbd></button><button data-result="Out">枠外 <kbd>O</kbd></button><button data-result="Block">ブロック <kbd>B</kbd></button><button data-result="TM">ミス <kbd>M</kbd></button><button data-result="VL">反則 <kbd>V</kbd></button>
+            </div>
+            <details class="other-events"><summary>警告・退場・タイムアウト</summary><div class="event-buttons"><button data-result="Yellow">警告</button><button data-result="Suspension">2分退場</button><button data-result="Red">失格</button><button data-result="Timeout">タイムアウト</button></div></details>
+            <div class="entry-footer"><label class="check-label"><input type="checkbox" id="autoSwitch">記録後に攻撃チームを切替</label><button id="cancelEdit" hidden>編集をやめる</button></div>
+            <p class="keyboard-help">キー操作：A 自チーム / L 相手 / G ゴール / Ctrl・⌘ Z 取消<br>入力欄の編集中はショートカットを無効にします。</p>
+          </section>
+          <section class="log-card">
+            <div class="card-heading"><h2>試合の記録 <span id="recordCount">0件</span></h2><button id="undoBtn" disabled>↶ ひとつ戻す</button></div>
+            <div class="log-tools"><label>表示<select id="logFilter"><option value="all">すべての記録</option><option value="goals">得点のみ</option><option value="Own">自チームのみ</option><option value="Opp">相手チームのみ</option></select></label><button id="csvBtn">CSV保存</button></div>
+            <div id="runningLog" class="running-log"></div>
+            <p class="field-hint log-note">新しい記録を上に表示。時刻を直すと得点順も再計算します。<br>「時間帯」は旧データの記録です。正確な時刻は未登録です。</p>
+          </section>
+        </div>
+      </section>
+      <section id="settingsPanel" class="settings-panel" hidden>
+        <div class="card-heading"><h1>試合・選手設定</h1><button id="demoBtn">サンプルを試す</button></div>
+        <form id="settingsForm">
+          <div class="roster-callout"><p>大学別名簿から選手を呼び出す</p><div class="roster-load-grid"><label>自チームの名簿<select id="presetOwn"><option value="">大学を選択</option></select></label><button type="button" id="loadOwnRoster">自チームに反映</button><label>相手チームの名簿<select id="presetOpp"><option value="">大学を選択</option></select></label><button type="button" id="loadOppRoster">相手に反映</button></div><small>呼び出し後に「設定を保存」で確定します。<a href="rosters.html">名簿を編集・追加する ↗</a></small></div>
+          <div class="settings-grid"><label>自チーム名<input id="settingOwn" maxlength="60" required></label><label>相手チーム名<input id="settingOpp" maxlength="60" required></label><label>試合日<input id="settingDate" type="date"></label><label>大会・メモ<input id="settingTitle" maxlength="120" placeholder="練習試合など"></label></div>
+          <div class="roster-grid"><label>自チームの選手<textarea id="rosterOwn" rows="9" placeholder="2 山田
+7 佐藤
+14 鈴木"></textarea></label><label>相手チームの選手<textarea id="rosterOpp" rows="9" placeholder="1
+5
+8"></textarea></label></div>
+          <p class="field-hint">1行に「背番号 名前」。Excelの2列をそのまま貼り付けできます。番号だけでも登録できます（0〜99）。</p>
+          <button type="submit" class="primary">設定を保存</button>
+        </form>
+        <div class="storage-note"><h2>記録の保存について</h2><p>試合はこのブラウザに自動保存します。別の端末へ移すときや試合終了時は「JSON保存」でバックアップしてください。「ファイル読込」で復元できます。Excelは従来の Data / Team / Personal シートに対応しています。</p><p>得点だけの記録でも利用できます。シュート失敗やミスも入力すると成功率・攻撃効率を分析できます。警告・退場・タイムアウトは攻撃数に含めません。</p></div>
+      </section>
+      <div id="analysisNotice" class="analysis-notice" hidden>入力した記録を集計しています。得点だけを記録した場合、成功率は試合全体の値にはなりません。詳細未指定の記録は種別・場面・場所の内訳に含まれない場合があります。</div>
+    <!-- ===== MAIN DASHBOARD ===== -->
+    <div class="dashboard" id="dashboard">
+
+        <!-- Header -->
+        <div class="header" id="matchHeader">
+            <div class="header-title">HANDBALL MATCH ANALYSIS</div>
+            <div class="header-match" id="matchTitle"></div>
+            <div class="header-date" id="matchDate"></div>
+        </div>
+
+        <!-- Scoreboard -->
+        <div class="scoreboard" id="scoreboard">
+            <div class="score-team">
+                <div class="score-team-name own" id="ownTeamName"></div>
+                <div class="score-number own" id="ownScore"></div>
+                <div class="score-half" id="ownScoreHalves"></div>
+            </div>
+            <div class="score-divider">—</div>
+            <div class="score-team">
+                <div class="score-team-name opp" id="oppTeamName"></div>
+                <div class="score-number opp" id="oppScore"></div>
+                <div class="score-half" id="oppScoreHalves"></div>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <!-- Team Comparison -->
+        <div class="section">
+            <div class="section-title"><span class="icon">📊</span>チーム統計比較</div>
+            <div class="tab-bar" id="teamTabs">
+                <button class="tab-btn active" data-tab="total">総計</button>
+                <button class="tab-btn" data-tab="first">前半</button>
+                <button class="tab-btn" data-tab="second">後半</button>
+            </div>
+            <div class="comparison-grid" id="teamComparison"></div>
+        </div>
+
+        <!-- Time-based Charts -->
+        <div class="section">
+            <div class="section-title"><span class="icon">📈</span>時間帯別分析</div>
+            <div class="charts-row">
+                <div class="chart-card">
+                    <canvas id="timeAttackChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <canvas id="timeGoalChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shoot Type Charts -->
+        <div class="section">
+            <div class="section-title"><span class="icon">🎯</span>シュート種別分析</div>
+            <div class="charts-row">
+                <div class="chart-card">
+                    <canvas id="shootTypeOwnChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <canvas id="shootTypeOppChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shot Zone Distribution -->
+        <div class="section">
+            <div class="section-title"><span class="icon">🏟️</span>シュートゾーン分布</div>
+            <div class="court-container">
+                <div class="court-wrapper">
+                    <div class="court-side">
+                        <div class="court-side-title own" id="courtOwnTitle"></div>
+                        <canvas id="courtOwn" class="court-canvas" width="500" height="400"></canvas>
+                    </div>
+                    <div class="court-side">
+                        <div class="court-side-title opp" id="courtOppTitle"></div>
+                        <canvas id="courtOpp" class="court-canvas" width="500" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GK Analysis -->
+        <div class="section">
+            <div class="section-title"><span class="icon">🧤</span>GK分析</div>
+            <div class="gk-grid" id="gkSection"></div>
+            <div class="gk-half-stats" id="gkHalfStats"></div>
+        </div>
+
+        <!-- Player Shooting Ranking -->
+        <div class="section">
+            <div class="section-title"><span class="icon">🏆</span>選手別シュート成功率ランキング</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="chart-card" style="padding:12px;" id="rankOwnCard"></div>
+                <div class="chart-card" style="padding:12px;" id="rankOppCard"></div>
+            </div>
+        </div>
+
+
+
+        <!-- Player Stats -->
+        <div class="section">
+            <div class="section-title"><span class="icon">👥</span>選手個人成績（Own）</div>
+            <div class="player-table-container">
+                <table class="player-table" id="ownPlayerTable"></table>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title"><span class="icon">👥</span>選手個人成績（Opp）</div>
+            <div class="player-table-container">
+                <table class="player-table" id="oppPlayerTable"></table>
+            </div>
+        </div>
+
+        <!-- Action Timeline -->
+        <div class="section">
+            <div class="section-title"><span class="icon">⏱️</span>アクションタイムライン</div>
+            <div class="timeline-filters" id="timelineFilters"></div>
+            <div class="timeline-container" id="timelineContainer"></div>
+        </div>
+
+        <!-- Scoring Flow -->
+        <div class="section">
+            <div class="section-title"><span class="icon">⚡</span>得点の流れ</div>
+            <div class="chart-card">
+                <div class="scoring-flow-scroll" id="scoringFlowScroll">
+                    <canvas id="scoringFlowCanvas" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+    <script src="team-defaults.js"></script>
+    <script src="score-core.js"></script>
+    <script src="roster-store.js"></script>
+    <script src="app.js"></script>
+    <script src="entry.js"></script>
+</body>
+
+</html>

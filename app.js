@@ -213,7 +213,7 @@ function computeStats(actions) {
       if (stats[team].byZone[zoneColumn(a.zone)]) stats[team].byZone[zoneColumn(a.zone)].shots++;
 
       // Position mapping
-      const pos = mapToPosition(a.action, a.zone);
+      const pos = a.position || mapToPosition(a.action, a.zone);
       if (pos && stats[team].byPosition[pos]) stats[team].byPosition[pos].shots++;
 
       if (a.result === 'Goal') {
@@ -1156,7 +1156,7 @@ function renderTimelineItems(filter) {
         <span class="timeline-no">#${a.no || ''}</span>
         <span class="timeline-phase ${a.phase === 'FB+Q' ? 'fb-highlight' : ''}">${a.phase || ''}</span>
         <span class="timeline-action">${actionLabel}</span>
-        <span class="timeline-zone">${a.zone || ''}</span>
+        <span class="timeline-zone">${[a.position ? ScoreCore.POSITION_LABELS[a.position] : '', a.zone ? ScoreCore.ZONE_LABELS[a.zone] || a.zone : ''].filter(Boolean).join('・')}</span>
         <span class="timeline-result ${resultClass}">${resultLabel}</span>
         <span class="timeline-score">${ownScore} - ${oppScore}</span>
       </div>
@@ -1353,4 +1353,3 @@ function renderScoringFlow() {
   ctx.textBaseline = 'bottom';
   ctx.fillText('試合進行 →', w - 10, h - 1);
 }
-

@@ -210,7 +210,7 @@ function computeStats(actions) {
       stats[team][period].shots++;
       if (stats[team].byTime[a.time]) stats[team].byTime[a.time].shots++;
       if (stats[team].byShoot[a.action]) stats[team].byShoot[a.action].shots++;
-      if (stats[team].byZone[a.zone]) stats[team].byZone[a.zone].shots++;
+      if (stats[team].byZone[zoneColumn(a.zone)]) stats[team].byZone[zoneColumn(a.zone)].shots++;
 
       // Position mapping
       const pos = mapToPosition(a.action, a.zone);
@@ -221,7 +221,7 @@ function computeStats(actions) {
         stats[team][period].goals++;
         if (stats[team].byTime[a.time]) stats[team].byTime[a.time].goals++;
         if (stats[team].byShoot[a.action]) stats[team].byShoot[a.action].goals++;
-        if (stats[team].byZone[a.zone]) stats[team].byZone[a.zone].goals++;
+        if (stats[team].byZone[zoneColumn(a.zone)]) stats[team].byZone[zoneColumn(a.zone)].goals++;
         if (pos && stats[team].byPosition[pos]) stats[team].byPosition[pos].goals++;
 
         if (a.phase === 'SetOF') stats[team][period].set_goals++;
@@ -247,7 +247,7 @@ function computeStats(actions) {
       stats[team].total.turnovers++;
       stats[team][period].turnovers++;
       if (stats[team].byTime[a.time]) stats[team].byTime[a.time].to++;
-      if (stats[team].byZone[a.zone]) stats[team].byZone[a.zone].to++;
+      if (stats[team].byZone[zoneColumn(a.zone)]) stats[team].byZone[zoneColumn(a.zone)].to++;
     }
   });
 
@@ -598,8 +598,10 @@ function renderShootTypeCharts() {
 }
 
 // ===== ポジションマッピング =====
-// action(シュート種別) と zone(L/C/R) から6ポジションにマッピング
+function zoneColumn(zone){return (globalThis.ScoreCore?.zoneColumn?.(zone))||zone;}
+// action(シュート種別) と zone(L/C/R または3×3) から6ポジションにマッピング
 function mapToPosition(action, zone) {
+  zone=zoneColumn(zone);
   // LW: ウイングシュート + 左ゾーン
   if (action === 'WS' && zone === 'L') return 'LW';
   // RW: ウイングシュート + 右ゾーン
@@ -1351,5 +1353,4 @@ function renderScoringFlow() {
   ctx.textBaseline = 'bottom';
   ctx.fillText('試合進行 →', w - 10, h - 1);
 }
-
 

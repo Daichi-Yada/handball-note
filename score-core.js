@@ -2,6 +2,8 @@
 (function (root) {
   'use strict';
   const SHOTS = ['DS', 'LS', 'WS', 'BT', 'EG', 'PT', 'UN'];
+  const ZONES = ['L','C','R','TL','TC','TR','ML','MC','MR','BL','BC','BR'];
+  const ZONE_LABELS = {L:'左',C:'中央',R:'右',TL:'左上',TC:'中上',TR:'右上',ML:'左中',MC:'中央',MR:'右中',BL:'左下',BC:'中下',BR:'右下'};
   const RESULTS = ['Goal', 'Save', 'Out', 'Block', 'TM', 'VL', 'Yellow', 'Suspension', 'Red', 'Timeout'];
   const EVENTS = RESULTS.slice(6);
   const id = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -42,11 +44,12 @@
     return {id: text(a.id || id()), half, seconds, time, team:a.team, no:number(a.no),
       phase: ['SetOF','FB+Q'].includes(a.phase) ? a.phase : null,
       action: event ? 'Event' : turnover ? 'TO' : a.action || 'UN',
-      zone: ['L','C','R'].includes(a.zone) ? a.zone : null, result:a.result,
+      zone: ZONES.includes(a.zone) ? a.zone : null, result:a.result,
       own_gk:number(a.own_gk), opp_gk:number(a.opp_gk)};
   }
   function blank() {
-    return {id:id(), ownName:root.DEFAULT_TEAM?.name || '自チーム', oppName:'相手チーム', date:new Date().toLocaleDateString('sv-SE'), title:'', rosters:{Own:(root.DEFAULT_TEAM?.players || []).map(p=>({...p})),Opp:[]}, actions:[]};
+    const own=(root.DEFAULT_TEAM?.players || []).map(p=>({...p}));
+    return {id:id(), ownName:root.DEFAULT_TEAM?.name || '自チーム', oppName:'相手チーム', date:new Date().toLocaleDateString('sv-SE'), title:'', rosters:{Own:own,Opp:[]}, playerOrder:{Own:own.map(p=>p.no),Opp:[]}, lineup:{Own:[],Opp:[]}, actions:[]};
   }
   function normalize(data) {
     if (!data || !Array.isArray(data.actions) || data.actions.length > 20000) throw new Error('対応する試合JSONではありません。');
@@ -58,6 +61,11 @@
       const unique = new Map();
       for (const p of players) {const n = number(p.no); if (n != null) unique.set(n,{no:n,name:text(p.name)});}
       m.rosters[team] = [...unique.values()].sort((a,b) => a.no-b.no);
+      const valid=new Set(m.rosters[team].map(p=>p.no));
+      const order=Array.isArray(data.playerOrder?.[team])?data.playerOrder[team].map(number).filter(n=>n!=null&&valid.has(n)):[];
+      m.playerOrder[team]=[...new Set(order),...m.rosters[team].map(p=>p.no).filter(n=>!order.includes(n))];
+      const lineup=Array.isArray(data.lineup?.[team])?data.lineup[team].map(number).filter(n=>n!=null&&valid.has(n)):[];
+      m.lineup[team]=[...new Set(lineup)].slice(0,7);
     }
     const used = new Set();
     m.actions = data.actions.map(a => { const row=normalizeAction(a); if(used.has(row.id)) row.id=id(); used.add(row.id); return row; });
@@ -107,7 +115,8 @@
     const actions=ordered(m.actions), last=running(actions).at(-1);
     return {...m, actions, score:last?.score||{own:0,opp:0}, personal:playerStats(m)};
   }
-  const api={SHOTS,RESULTS,EVENTS,id,esc,number,timeToSeconds,clockText,bucket,normalizeAction,blank,normalize,ordered,running,playerStats,analysis};
+  const zoneColumn=zone=>({L:'L',C:'C',R:'R',TL:'L',ML:'L',BL:'L',TC:'C',MC:'C',BC:'C',TR:'R',MR:'R',BR:'R'})[zone]||null;
+  const api={SHOTS,ZONES,ZONE_LABELS,zoneColumn,RESULTS,EVENTS,id,esc,number,timeToSeconds,clockText,bucket,normalizeAction,blank,normalize,ordered,running,playerStats,analysis};
   if(typeof module!=='undefined' && module.exports) module.exports=api;
   root.ScoreCore=api;
 })(globalThis);

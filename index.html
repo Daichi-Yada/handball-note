@@ -1,18 +1,14 @@
 <!DOCTYPE html>
-<html lang="ja">
-
-<head>
+<html lang="ja"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HANDBALL NOTE | ランニングスコア・試合分析</title>
     <meta name="description" content="試合を見ながらハンドボールの得点・プレーをかんたん記録。ランニングスコア、選手別集計、試合分析。">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&display=swap"
-        rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Noto+Sans+JP:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="entry.css?v=8">
+    <link rel="stylesheet" href="entry.css?v=9">
     <script src="vendor/xlsx.full.min.js"></script>
     <script src="vendor/chart.umd.min.js"></script>
 </head>
@@ -32,7 +28,7 @@
       <div class="match-toolbar" id="matchToolbar">
         <label class="match-picker">試合 <select id="matchPicker" aria-label="保存した試合"></select></label>
         <div class="toolbar-actions"><button id="newMatch">＋ 新しい試合</button><button id="importBtn">ファイル読込</button><button id="exportBtn">JSON保存</button></div>
-        <input type="file" id="fileInput" accept=".json,.xlsx,.xlsm,.xls" hidden>
+        <input type="file" id="fileInput" accept=".json,.xlsx,.xlsm,.xls" hidden="">
       </div>
       <nav class="main-tabs" id="mainTabs" aria-label="メイン画面">
         <button data-view="home">◀ ホーム</button>
@@ -49,55 +45,65 @@
         </div>
         <div class="record-layout">
           <section class="entry-card">
-            <div class="card-heading"><h1>プレーを記録</h1><span id="editBadge" hidden>記録を編集中</span></div>
+            <div class="card-heading"><h1>プレーを記録</h1><span id="editBadge" hidden="">記録を編集中</span></div>
             <div class="clock-row">
               <div class="choice-field half-choice"><span id="halfLabel" class="choice-label">前後半</span><input type="hidden" id="half" value="1"><div class="choice-buttons" role="group" aria-labelledby="halfLabel"><button type="button" data-choice-for="half" data-choice-value="1" aria-pressed="true" class="selected">前半</button><button type="button" data-choice-for="half" data-choice-value="2" aria-pressed="false" class="">後半</button></div></div>
               <label class="clock-field">ハーフ内の時刻<input id="clock" value="00:00" inputmode="numeric" maxlength="5" aria-describedby="clockHelp"></label>
-              <button id="clockToggle" title="計時の開始・停止">▶ 計時</button>
+              <button id="clockApply" type="button">時刻を適用して再開</button><button id="clockToggle" title="計時の開始・停止">▶ 計時</button>
             </div>
             <p class="field-hint" id="clockHelp">時刻は直接入力できます。映像を見ながらの記録にも。</p>
             <div class="team-switch" role="group" aria-label="記録するチーム"><button data-team="Own" class="selected own" aria-pressed="true">自チーム</button><button data-team="Opp" class="opp" aria-pressed="false">相手チーム</button></div>
-            <div class="player-input-row"><label>背番号<input id="playerNo" type="number" min="0" max="99" placeholder="未指定" inputmode="numeric"></label><span class="field-hint" id="playerSelectionTitle">番号ボタンで選択。未指定でも記録できます。</span></div>
-            <div id="playerButtons" class="player-buttons" aria-label="選手を選択"></div>
-            <div class="choice-field position-choice"><span id="positionLabel" class="choice-label">発生位置</span><input type="hidden" id="position" value=""><div class="choice-buttons position-grid" role="group" aria-labelledby="positionLabel"><button type="button" data-choice-for="position" data-choice-value="LW" aria-pressed="false">LW</button><button type="button" data-choice-for="position" data-choice-value="LB" aria-pressed="false">L</button><button type="button" data-choice-for="position" data-choice-value="CB" aria-pressed="false">C</button><button type="button" data-choice-for="position" data-choice-value="RB" aria-pressed="false">R</button><button type="button" data-choice-for="position" data-choice-value="RW" aria-pressed="false">RW</button></div></div>
-            <section id="detailFields" class="play-choices" aria-label="プレーの詳細">
-<div class="choice-field shot-choices"><span id="shotTypeLabel" class="choice-label">シュート</span><input type="hidden" id="shotType" value="UN"><div class="choice-buttons" role="group" aria-labelledby="shotTypeLabel"><button type="button" data-choice-for="shotType" data-choice-value="UN" aria-pressed="true" class="selected">未指定</button><button type="button" data-choice-for="shotType" data-choice-value="DS" aria-pressed="false" class="">ロング・ミドル</button><button type="button" data-choice-for="shotType" data-choice-value="LS" aria-pressed="false" class="">ライン際</button><button type="button" data-choice-for="shotType" data-choice-value="WS" aria-pressed="false" class="">サイド</button><button type="button" data-choice-for="shotType" data-choice-value="BT" aria-pressed="false" class="">カットイン</button><button type="button" data-choice-for="shotType" data-choice-value="EG" aria-pressed="false" class="">エンプティ</button><button type="button" data-choice-for="shotType" data-choice-value="PT" aria-pressed="false" class="">7mスロー</button></div></div><div class="choice-field phase-choice"><span id="phaseLabel" class="choice-label">場面</span><input type="hidden" id="phase" value=""><div class="choice-buttons" role="group" aria-labelledby="phaseLabel"><button type="button" data-choice-for="phase" data-choice-value="" aria-pressed="true" class="selected">未指定</button><button type="button" data-choice-for="phase" data-choice-value="SetOF" aria-pressed="false" class="">セット攻撃</button><button type="button" data-choice-for="phase" data-choice-value="FB+Q" aria-pressed="false" class="">速攻・クイック</button></div></div><div class="choice-field zone-choice"><span id="zoneLabel" class="choice-label">場所</span><input type="hidden" id="zone" value=""><div class="choice-buttons zone-grid" role="group" aria-labelledby="zoneLabel"><button type="button" data-choice-for="zone" data-choice-value="" aria-pressed="true" class="selected">未指定</button><button type="button" data-choice-for="zone" data-choice-value="TL" aria-pressed="false">左上</button><button type="button" data-choice-for="zone" data-choice-value="TC" aria-pressed="false">中上</button><button type="button" data-choice-for="zone" data-choice-value="TR" aria-pressed="false">右上</button><button type="button" data-choice-for="zone" data-choice-value="ML" aria-pressed="false">左中</button><button type="button" data-choice-for="zone" data-choice-value="MC" aria-pressed="false">中央</button><button type="button" data-choice-for="zone" data-choice-value="MR" aria-pressed="false">右中</button><button type="button" data-choice-for="zone" data-choice-value="BL" aria-pressed="false">左下</button><button type="button" data-choice-for="zone" data-choice-value="BC" aria-pressed="false">中下</button><button type="button" data-choice-for="zone" data-choice-value="BR" aria-pressed="false">右下</button></div></div>
-              <label class="check-label"><input type="checkbox" id="keepDetails">位置・シュート・場面・場所を次の記録でも使う</label>
-            </section>
-            <section id="penaltyPanel" class="penalty-panel" hidden aria-label="7mスロー入力"><div class="penalty-heading"><strong>7mスロー</strong><span>上の背番号ボタンから打つ選手を選択</span></div><p>結果を選ぶと記録し、通常プレーの入力に戻ります。</p><div class="penalty-results"><button type="button" data-result="Goal" class="goal-button"><strong>7m成功</strong></button><button type="button" data-result="Save">GKセーブ</button><button type="button" data-result="Out">枠外</button><button type="button" data-result="Block">ブロック</button><button type="button" id="penaltyCancel">通常プレーに戻る</button></div></section>
-            <section id="normalResults" class="normal-results"><p class="result-label" id="resultLabel">結果を押すと、1件記録されます</p>
+            <div class="choice-field phase-choice"><span id="phaseLabel" class="choice-label">場面</span><input type="hidden" id="phase" value=""><div class="choice-buttons" role="group" aria-labelledby="phaseLabel"><button type="button" data-choice-for="phase" data-choice-value="" aria-pressed="true" class="selected">未指定</button><button type="button" data-choice-for="phase" data-choice-value="SetOF" aria-pressed="false" class="">セット攻撃</button><button type="button" data-choice-for="phase" data-choice-value="FB+Q" aria-pressed="false" class="">速攻・クイック</button></div></div><div class="player-input-row"><label id="playerNumberLabel">背番号<input id="playerNo" type="number" min="0" max="99" placeholder="未指定" inputmode="numeric"></label><span class="field-hint" id="playerSelectionTitle">番号ボタンで選択。未指定でも記録できます。</span><label id="penaltyGKField" hidden="">守備側GK（交代時に変更）<input id="penaltyGK" type="number" min="0" max="99" inputmode="numeric" placeholder="未指定"></label></div>
+            <input type="hidden" id="playerPosition"><div id="playerButtons" class="player-buttons" aria-label="選手を選択"></div>
+
+            <div class="play-left"><div class="choice-field position-choice"><span id="positionLabel" class="choice-label">発生位置</span><input type="hidden" id="position" value=""><div class="choice-buttons position-grid" role="group" aria-labelledby="positionLabel"><button type="button" data-choice-for="position" data-choice-value="LW" aria-pressed="false">LW</button><button type="button" data-choice-for="position" data-choice-value="LB" aria-pressed="false">L</button><button type="button" data-choice-for="position" data-choice-value="CB" aria-pressed="false">C</button><button type="button" data-choice-for="position" data-choice-value="RB" aria-pressed="false">R</button><button type="button" data-choice-for="position" data-choice-value="RW" aria-pressed="false">RW</button></div></div><div class="choice-field shot-choices"><span id="shotTypeLabel" class="choice-label">シュート</span><input type="hidden" id="shotType" value="UN"><div class="choice-buttons" role="group" aria-labelledby="shotTypeLabel"><button type="button" data-choice-for="shotType" data-choice-value="UN" aria-pressed="true" class="selected">未指定</button><button type="button" data-choice-for="shotType" data-choice-value="DS" aria-pressed="false" class="">ロング・ミドル</button><button type="button" data-choice-for="shotType" data-choice-value="BT" aria-pressed="false" class="">カットイン</button><button type="button" data-choice-for="shotType" data-choice-value="WS" aria-pressed="false" class="">サイド</button><button type="button" data-choice-for="shotType" data-choice-value="LS" aria-pressed="false" class="">ライン際</button><button type="button" data-choice-for="shotType" data-choice-value="EG" aria-pressed="false" class="">エンプティ</button><button type="button" data-choice-for="shotType" data-choice-value="PT" aria-pressed="false" class="">7mスロー</button></div></div><div class="turnover-controls"><button data-result="TM">TO（ミス） <kbd>M</kbd></button></div><section id="mistakePanel" class="mistake-panel" hidden=""><span class="choice-label">TOの内容を選択</span><input id="mistake" type="hidden"><div id="mistakeButtons" class="choice-buttons"></div></section><section id="penaltyPanel" class="penalty-panel" hidden="" aria-label="7mスロー入力">
+              <strong>7mスロー</strong><p id="penaltyProgress" aria-live="polite"></p>
+              <div id="penaltyReasonStep"><span class="choice-label">① PTの理由</span><input id="ptReason" type="hidden"><div class="choice-buttons">
+                <button type="button" data-choice-for="ptReason" data-choice-value="Line">ライン内</button><button type="button" data-choice-for="ptReason" data-choice-value="Yellow">🟨 警告</button><button type="button" data-choice-for="ptReason" data-choice-value="Suspension">✌️ 退場</button><button type="button" data-choice-for="ptReason" data-choice-value="Red">🟥 失格</button>
+              </div></div>
+              <div id="penaltyDefenderStep" hidden=""><label>② 相手DFの背番号<input id="defenderNo" type="number" min="0" max="99" inputmode="numeric"></label><button type="button" id="penaltyNext">シューター選択へ →</button></div>
+              <div id="penaltyShooterStep" hidden=""><p>③ 選手欄でシューターを選択・入力してください。</p></div>
+              <button type="button" id="penaltyCancel">通常プレーに戻る</button>
+            </section></div><div class="play-right"><div class="choice-field zone-choice"><span id="zoneLabel" class="choice-label">シュートコース</span><input type="hidden" id="zone" value=""><div class="choice-buttons zone-grid" role="group" aria-labelledby="zoneLabel"><button type="button" data-choice-for="zone" data-choice-value="" aria-pressed="true" class="selected">未指定</button><button type="button" data-choice-for="zone" data-choice-value="TL" aria-pressed="false">左上</button><button type="button" data-choice-for="zone" data-choice-value="TC" aria-pressed="false">中上</button><button type="button" data-choice-for="zone" data-choice-value="TR" aria-pressed="false">右上</button><button type="button" data-choice-for="zone" data-choice-value="ML" aria-pressed="false">左中</button><button type="button" data-choice-for="zone" data-choice-value="MC" aria-pressed="false">中央</button><button type="button" data-choice-for="zone" data-choice-value="MR" aria-pressed="false">右中</button><button type="button" data-choice-for="zone" data-choice-value="BL" aria-pressed="false">左下</button><button type="button" data-choice-for="zone" data-choice-value="BC" aria-pressed="false">中下</button><button type="button" data-choice-for="zone" data-choice-value="BR" aria-pressed="false">右下</button><button type="button" data-choice-for="zone" data-choice-value="Loop" aria-pressed="false">ループ</button></div></div><section id="normalResults" class="normal-results"><p class="result-label" id="resultLabel">結果を選び、決定で記録します</p>
             <div class="result-buttons">
               <button data-result="Goal" class="goal-button"><strong>ゴール</strong><kbd>G</kbd></button>
-              <button data-result="Save">GKセーブ <kbd>S</kbd></button><button data-result="Out">枠外 <kbd>O</kbd></button><button data-result="Block">ブロック <kbd>B</kbd></button><button data-result="TM">ミス <kbd>M</kbd></button><button data-result="VL">反則 <kbd>V</kbd></button>
+              <button data-result="Save">GKセーブ <kbd>S</kbd></button><button data-result="Out">枠外 <kbd>O</kbd></button><button data-result="Block">ブロック <kbd>B</kbd></button><button data-result="VL">反則 <kbd>V</kbd></button>
             </div>
-            <section class="other-events" aria-label="警告・退場・タイムアウト"><h2 class="choice-label">警告・退場・タイムアウト</h2><div class="event-buttons"><button data-result="Yellow">警告</button><button data-result="Suspension">2分退場</button><button data-result="Red">失格</button><button data-result="Timeout">タイムアウト</button></div></section>
-            </section>
-            <div class="entry-footer"><label class="check-label"><input type="checkbox" id="autoSwitch">得点後は自動切替・シュート失敗時も切替</label><button id="cancelEdit" hidden>編集をやめる</button></div>
-            <details class="keeper-section">
-              <summary id="keeperTitle">ゴールを守っている選手 <span>任意</span></summary>
+            <section class="other-events" aria-label="警告・退場・タイムアウト"><h2 class="choice-label">警告・退場・タイムアウト</h2><div class="event-buttons"><button data-result="Yellow">🟨 警告</button><button data-result="Suspension">✌️ 2分退場</button><button data-result="Red">🟥 失格</button><button data-result="Timeout">⏱ タイムアウト</button></div></section>
+            </section><div id="penaltyResults" class="penalty-results" hidden=""><button type="button" data-result="Goal" class="goal-button">⚽ 7m成功</button><button type="button" data-result="Save">🧤 GKセーブ</button><button type="button" data-result="Out">↗ 枠外</button></div></div>
+
+
+
+            <section id="detailFields" class="play-choices" aria-label="プレーの詳細">
+
+
+            <label class="check-label"><input type="checkbox" id="keepDetails">位置・シュート・場面・場所を次の記録でも使う</label></section><details class="keeper-section">
+              <summary id="keeperTitle">ゴールを守っている選手 <span id="keeperSummary"></span></summary>
               <p class="field-hint" id="keeperHelp">GK（ゴールキーパー）別のセーブ率を集計するための項目です。両チームの守っている選手を選びます。交代するまで選択を引き継ぎます。わからなければ未指定のままで記録できます。</p>
               <div class="keeper-grid">
                 <div class="keeper-team"><label for="ownGK"><span id="ownGKLabel">自チームのGK</span><input id="ownGK" type="number" min="0" max="99" inputmode="numeric" placeholder="背番号（未指定可）" aria-describedby="keeperHelp"></label><div id="ownGKButtons" class="choice-buttons keeper-buttons" role="group" aria-labelledby="ownGKLabel"></div></div>
                 <div class="keeper-team"><label for="oppGK"><span id="oppGKLabel">相手チームのGK</span><input id="oppGK" type="number" min="0" max="99" inputmode="numeric" placeholder="背番号（未指定可）" aria-describedby="keeperHelp"></label><div id="oppGKButtons" class="choice-buttons keeper-buttons" role="group" aria-labelledby="oppGKLabel"></div></div>
               </div>
               <p class="field-hint keeper-example">自チームのシュートに対応するのは相手GK、相手のシュートに対応するのは自チームGKです。</p>
-            </details>
+            </details><div class="confirm-row"><p id="selectionSummary" role="status">結果を選択してください。</p><button type="button" id="confirmRecord" disabled="">✓ 決定・記録</button></div>
+            <div class="entry-footer"><label class="check-label"><input type="checkbox" id="autoSwitch">得点後は自動切替・シュート失敗時も切替</label><button id="cancelEdit" hidden="">編集をやめる</button></div>
+
             <p class="keyboard-help">キー操作：A 自チーム / L 相手 / G ゴール / Ctrl・⌘ Z 取消<br>入力欄の編集中はショートカットを無効にします。</p>
           </section>
           <section class="log-card">
-            <div class="card-heading"><h2>試合の記録 <span id="recordCount">0件</span></h2><button id="undoBtn" disabled>↶ ひとつ戻す</button></div>
+            <div class="card-heading"><h2>試合の記録 <span id="recordCount">0件</span></h2><button id="undoBtn" disabled="">↶ ひとつ戻す</button></div>
             <div class="log-tools"><div class="choice-field "><span id="logFilterLabel" class="choice-label">表示</span><input type="hidden" id="logFilter" value="all"><div class="choice-buttons" role="group" aria-labelledby="logFilterLabel"><button type="button" data-choice-for="logFilter" data-choice-value="all" aria-pressed="true" class="selected">すべて</button><button type="button" data-choice-for="logFilter" data-choice-value="goals" aria-pressed="false" class="">得点</button><button type="button" data-choice-for="logFilter" data-choice-value="Own" aria-pressed="false" class="">自チーム</button><button type="button" data-choice-for="logFilter" data-choice-value="Opp" aria-pressed="false" class="">相手</button></div></div><button id="csvBtn">CSV保存</button></div>
             <div id="runningLog" class="running-log"></div>
             <p class="field-hint log-note">新しい記録を上に表示。時刻を直すと得点順も再計算します。<br>「時間帯」は旧データの記録です。正確な時刻は未登録です。</p>
           </section>
         </div>
       </section>
-      <section id="settingsPanel" class="settings-panel" hidden>
+      <section id="settingsPanel" class="settings-panel" hidden="">
         <div class="card-heading"><h1>試合・選手設定</h1><button id="demoBtn">サンプルを試す</button></div>
         <form id="settingsForm">
           <div class="roster-callout"><p>大学別名簿から選手を呼び出す</p><div class="roster-load-grid"><label>自チームの名簿<select id="presetOwn"><option value="">大学を選択</option></select></label><button type="button" id="loadOwnRoster">自チームに反映</button><label>相手チームの名簿<select id="presetOpp"><option value="">大学を選択</option></select></label><button type="button" id="loadOppRoster">相手に反映</button></div><small>呼び出し後に「設定を保存」で確定します。<a href="rosters.html">名簿を編集・追加する ↗</a></small></div>
-          <div class="settings-grid"><label>自チーム名<input id="settingOwn" maxlength="60" required></label><label>相手チーム名<input id="settingOpp" maxlength="60" required></label><label>試合日<input id="settingDate" type="date"></label><label>大会・メモ<input id="settingTitle" maxlength="120" placeholder="練習試合など"></label></div>
-          <div class="roster-grid"><label>自チームの選手<textarea id="rosterOwn" rows="9" placeholder="2 山田
+          <div class="settings-grid"><label>自チーム名<input id="settingOwn" maxlength="60" required=""></label><label>相手チーム名<input id="settingOpp" maxlength="60" required=""></label><label>試合日<input id="settingDate" type="date"></label><label>大会・メモ<input id="settingTitle" maxlength="120" placeholder="練習試合など"></label></div>
+          <div class="practice-settings"><label class="check-label"><input type="checkbox" id="practiceOwn">自チーム：練習試合モード（7ポジション）</label><label class="check-label"><input type="checkbox" id="practiceOpp">相手：練習試合モード（7ポジション）</label></div><div class="roster-grid"><label>自チームの選手<textarea id="rosterOwn" rows="9" placeholder="2 山田
 7 佐藤
 14 鈴木"></textarea></label><label>相手チームの選手<textarea id="rosterOpp" rows="9" placeholder="1
 5
@@ -107,7 +113,7 @@
         </form>
         <div class="storage-note"><h2>記録の保存について</h2><p>試合はこのブラウザに自動保存します。別の端末へ移すときや試合終了時は「JSON保存」でバックアップしてください。「ファイル読込」で復元できます。Excelは従来の Data / Team / Personal シートに対応しています。</p><p>得点だけの記録でも利用できます。シュート失敗やミスも入力すると成功率・攻撃効率を分析できます。警告・退場・タイムアウトは攻撃数に含めません。</p></div>
       </section>
-      <div id="analysisNotice" class="analysis-notice" hidden>入力した記録を集計しています。得点だけを記録した場合、成功率は試合全体の値にはなりません。詳細未指定の記録は種別・場面・場所の内訳に含まれない場合があります。</div>
+      <div id="analysisNotice" class="analysis-notice" hidden="">入力した記録を集計しています。得点だけを記録した場合、成功率は試合全体の値にはなりません。詳細未指定の記録は種別・場面・場所の内訳に含まれない場合があります。</div>
     <!-- ===== MAIN DASHBOARD ===== -->
     <div class="dashboard" id="dashboard">
 
@@ -243,13 +249,16 @@
     </div>
 
     </main>
-    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden=""></div>
 
     <script src="team-defaults.js"></script>
     <script src="score-core.js"></script>
     <script src="roster-store.js"></script>
     <script src="app.js"></script>
     <script src="entry.js?v=9"></script>
-</body>
 
-</html>
+
+
+
+
+</body></html>
